@@ -1,7 +1,8 @@
 package teads_sponsored_contest;
 
 import java.util.*;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 class Solution {
 
@@ -24,10 +25,6 @@ class Solution {
 
 		public void setDistance(Integer distance) {
 			this.distance = distance;
-		}
-
-		public Integer getId() {
-			return id;
 		}
 
 		@Override
@@ -66,15 +63,11 @@ class Solution {
 		public void setParent(Person parent) {
 			this.parent = parent;
 		}
-
-		public Person getParent() {
-			return parent;
-		}
 	}
 
-	private static class Graph {
+	private static class Network {
 
-		private Map<Integer, Person> persons = new HashMap<>();
+		private Map<Integer, Person> people = new HashMap<>();
 
 		public void addRelation(int idOne, int idTwo) {
 			addIfNotPresent(idOne);
@@ -83,29 +76,41 @@ class Solution {
 		}
 
 		private void addIfNotPresent(int id) {
-			if (!persons.containsKey(id)) {
-				persons.put(id, new Person(id));
+			if (!people.containsKey(id)) {
+				people.put(id, new Person(id));
 			}
 		}
 
 		private void addNeighbors(int idOne, int idTwo) {
-			Person personOne = persons.get(idOne);
-			Person personTwo = persons.get(idTwo);
+			Person personOne = people.get(idOne);
+			Person personTwo = people.get(idTwo);
 			personOne.addNeighbor(personTwo);
 			personTwo.addNeighbor(personOne);
 		}
 
+		public Collection<Person> getNodes() {
+			return people.values();
+		}
+	}
+
+	private static class NetworkSearcher {
+
+		private Collection<Person> people;
+
+		public NetworkSearcher(Network graph) {
+			people = graph.getNodes();
+		}
+
 		public Integer findMinimalAmount() {
 
+			Person root = people.stream().findFirst().get();
 
-			Person root =   persons.values().stream().findFirst().get();
-			
-			Person maxDistancePerson = breadthFirstSearchFarestPerson(root);
+			Person onePeripheralPerson = breadthFirstSearchFarestPerson(root);
 
-			maxDistancePerson = breadthFirstSearchFarestPerson(maxDistancePerson);
-			
-			Integer minDistance = (maxDistancePerson.getDistance() + 1) / 2;
-			
+			Person otherPeripheralPerson = breadthFirstSearchFarestPerson(onePeripheralPerson);
+
+			Integer minDistance = (otherPeripheralPerson.getDistance() + 1) / 2;
+
 			return minDistance;
 		}
 
@@ -113,13 +118,7 @@ class Solution {
 
 			Person farestPerson = root;
 
-			BiConsumer<Integer, Person> resetPerson = (id, person) -> {
-				person.setDistance(null);
-				person.setParent(null);
-			};
-
-			persons.forEach(resetPerson);
-			Comparator<Person> byDistance = (Person p1, Person p2)->p1.getDistance().compareTo(p2.getDistance());
+			people.forEach(resetPerson());
 
 			Queue<Person> queue = new LinkedList<>();
 			root.setDistance(0);
@@ -127,34 +126,56 @@ class Solution {
 
 			while (!queue.isEmpty()) {
 				Person current = queue.poll();
-				
-				current.getNeighbors().stream().
-						filter(neighbor -> neighbor.distance == null).
-						forEach(neighbor -> {neighbor.setDistance(current.getDistance() + 1); neighbor.setParent(current); queue.add(neighbor);});
+
+				farestPerson = current.getNeighbors().stream().filter(isNeigborExplored())
+						.peek(exploreNeighbor(queue, current)).max(comparePersonByDistance()).orElse(farestPerson);
 			}
 
-			farestPerson = persons.values().stream().max(byDistance).get();
-			
 			return farestPerson;
 		}
+
+		private Comparator<Person> comparePersonByDistance() {
+			return (Person p1, Person p2) -> p1.getDistance().compareTo(p2.getDistance());
+		}
+
+		private Predicate<? super Person> isNeigborExplored() {
+			return neighbor -> neighbor.distance == null;
+		}
+
+		private Consumer<? super Person> exploreNeighbor(Queue<Person> queue, Person current) {
+			return neighbor -> {
+				neighbor.setDistance(current.getDistance() + 1);
+				neighbor.setParent(current);
+				queue.add(neighbor);
+			};
+		}
+
+		private Consumer<Person> resetPerson() {
+			return (person) -> {
+				person.setDistance(null);
+				person.setParent(null);
+			};
+		}
+
 	}
 
 	public static void main(String args[]) {
 
 		Scanner in = new Scanner(System.in);
-		int numberOfEdges = in.nextInt(); // the number of adjacency relations
-		Graph graph = new Graph();
+		int numberOfEdges = in.nextInt();
+		Network network = new Network();
 
 		for (int i = 0; i < numberOfEdges; i++) {
-			int idOne = in.nextInt(); // the ID of a person which is
-										// adjacent to yi
-			int idTwo = in.nextInt(); // the ID of a person which is
+			int idOne = in.nextInt(); 
+			int idTwo = in.nextInt(); 
 
-			graph.addRelation(idOne, idTwo);
-			// adjacent to xi
+			network.addRelation(idOne, idTwo);
 		}
 
-		Integer answer = graph.findMinimalAmount();
+		NetworkSearcher networkSearcher = new NetworkSearcher(network);
+
+		Integer answer = networkSearcher.findMinimalAmount();
+
 		System.out.println(answer);
 	}
 }
