@@ -67,7 +67,7 @@ class Solution {
 
 	private static class Network {
 
-		private Map<Integer, Person> people = new HashMap<>();
+		private Map<Integer, Person> peopleMap = new HashMap<>();
 
 		public void addRelation(int idOne, int idTwo) {
 			addIfNotPresent(idOne);
@@ -76,20 +76,20 @@ class Solution {
 		}
 
 		private void addIfNotPresent(int id) {
-			if (!people.containsKey(id)) {
-				people.put(id, new Person(id));
+			if (!peopleMap.containsKey(id)) {
+				peopleMap.put(id, new Person(id));
 			}
 		}
 
 		private void addNeighbors(int idOne, int idTwo) {
-			Person personOne = people.get(idOne);
-			Person personTwo = people.get(idTwo);
+			Person personOne = peopleMap.get(idOne);
+			Person personTwo = peopleMap.get(idTwo);
 			personOne.addNeighbor(personTwo);
 			personTwo.addNeighbor(personOne);
 		}
 
 		public Collection<Person> getNodes() {
-			return people.values();
+			return peopleMap.values();
 		}
 	}
 
@@ -97,8 +97,8 @@ class Solution {
 
 		private Collection<Person> people;
 
-		public NetworkSearcher(Network graph) {
-			people = graph.getNodes();
+		public NetworkSearcher(Network network) {
+			people = network.getNodes();
 		}
 
 		public Integer findMinimalAmount() {
@@ -127,7 +127,7 @@ class Solution {
 			while (!queue.isEmpty()) {
 				Person current = queue.poll();
 
-				farestPerson = current.getNeighbors().stream().filter(isNeigborExplored())
+				farestPerson = current.getNeighbors().stream().filter(isNeigborUnExplored())
 						.peek(exploreNeighbor(queue, current)).max(comparePersonByDistance()).orElse(farestPerson);
 			}
 
@@ -138,7 +138,7 @@ class Solution {
 			return (Person p1, Person p2) -> p1.getDistance().compareTo(p2.getDistance());
 		}
 
-		private Predicate<? super Person> isNeigborExplored() {
+		private Predicate<? super Person> isNeigborUnExplored() {
 			return neighbor -> neighbor.distance == null;
 		}
 
