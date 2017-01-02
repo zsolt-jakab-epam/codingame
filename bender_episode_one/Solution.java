@@ -162,7 +162,7 @@ class Solution {
 			Coordinate nextCoord;
 			switch (actMove.getDirection()) {
 			case SOUTH:
-				nextCoord = new Coordinate(actMove.getCoordinate().getX(), y)
+				nextCoord = new Coordinate(actMove.getCoordinate().getX(), actMove.getCoordinate().getY());
 				break;
 
 			default:
